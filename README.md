@@ -1,28 +1,33 @@
-This implements (copy!) the in and out scripts from the official Concourse
-git-resource, but reimplements the 'check' script by polling AWS SQS for
-CodeCommit messages.
+This implements (by copying!) the _in_ and _out_ scripts from the official Concourse
+git-resource, but reimplements (by replacing!) the _check_ script.
 
-If at least SQS Message from CodeCommit is found, then if will return the
+If at least a SQS Message from CodeCommit is found, then if will return the
 references for such commit(s), which will be passed by Concourse to the
-git-resource 'in' script
+git-resource 'in' script.
 
 ```
-resources:
-- name: test-git
-  type: aws-sqs
+resource_types:
+- name: aws-codecommit
+  type: docker-image
   source:
-    aws_access_key_id: {{AWS_ACCESS_KEY_ID}}
-    aws_secret_access_key: {{AWS_SECRET_KEY}}
-    aws_region: {{AWS_REGION}}
+    repository: kalfa/aws-codecommit-concourse-resource
 
-    queue: {{AWS_QUEUE_NAME}}
-    uri: {{AWS_CODECOMMIT_REPO_URL}}
+resources:
+- name: my-codecommit-repo
+  type: aws-codecommit
+  source:
+    aws\_access\_key\_id: {{AWS\_ACCESS\_KEY\_ID}}
+    aws\_secret\_access\_key: {{AWS\_SECRET\_KEY}}
+    aws\_region: {{AWS\_REGION}}
+
+    queue: {{AWS\_QUEUE\_NAME}}
+    uri: {{AWS\_CODECOMMIT\_REPO\_URL}}
     branch: master
-    username: {{AWS_HTTP_TOKEN}}
-    password: {{AWS_HTTP_TOKEN_SECRET}}
+    username: {{AWS\_HTTP\_TOKEN}}
+    password: {{AWS\_HTTP\_TOKEN\_SECRET}}
 ```
 
 Where:
-- queue, aws_access_key_id, aws_secret_access_key and aws_region are specific for this resource
-- queue containes the queue name (not the URL or the ARN!), e.g., "concourse"
-- any other key are the same required by the "in" or "out" script of git-resource
+- *queue*, *aws\_access\_key\_id*, *aws\_secret\_access\_key* and *aws\_region* are specific for this resource
+- *queue* containes the AWS SQS queue name (not the URL or the ARN!), e.g., "concourse"
+- any other key are the same used by the "in" or "out" script of git-resource
