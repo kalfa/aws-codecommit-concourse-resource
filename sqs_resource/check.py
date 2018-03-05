@@ -36,13 +36,15 @@ def check(instream):
         if current_version:
             return [current_version]
         else:
-            return {}
+            return None
 
     return versions
 
 
 def main():
-    print(json.dumps(check(sys.stdin)))
+    response = check(sys.stdin)
+    if response:
+        print(json.dumps(response))
 
 
 if __name__ == '__main__':
