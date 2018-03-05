@@ -25,11 +25,6 @@ def read_readme():
         return f.read()
 
 
-def get_requirements():
-    with open(os.path.join(here, 'requirements.txt')) as f:
-        return f.readlines()
-
-
 setup(
     name="concourse-aws-sqs-notification-resource",
     version='0.0.1',
@@ -39,7 +34,9 @@ setup(
     author='Cosimo Alfarano',
     license='Apache 2.0',
     packages=['sqs_resource'],
-    install_requires=get_requirements(),
+    install_requires=[
+        'boto3',
+    ],
     include_package_data=True,
     entry_points={
         'console_scripts': [

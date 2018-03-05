@@ -5,7 +5,6 @@ RUN apk --no-cache add python3 && python3 -m ensurepip && \
 
 COPY setup.py .
 COPY README.md .
-COPY requirements.txt .
 COPY sqs_resource sqs_resource/
 
 RUN python3 ./setup.py bdist_wheel
