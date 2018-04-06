@@ -14,11 +14,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
+import subprocess
 import json
+import tempfile
 import sys
 
 from . import sqs
+
+
+def git_check(data):
+    filename = tempfile.mktemp()
+
+    with open(filename, 'w') as f:
+        f.write(json.dumps(data))
+    with open(filename, 'r') as f:
+        return subprocess.check_call(['/opt/original_git/check'],
+                                     stdin=f,
+                                     shell=True)
 
 
 def check(instream):
@@ -36,7 +48,9 @@ def check(instream):
         if current_version:
             return [current_version]
         else:
-            return None
+            print("No previous version found, runing original git/check",
+                  file=sys.stderr)
+            return git_check(data)
 
     return versions
 
