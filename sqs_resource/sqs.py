@@ -5,7 +5,7 @@ import boto3
 import json
 
 
-def poll_queue(queue_name, creds):
+def poll_queue(queue_name, creds, debug=False):
     sqs = boto3.client('sqs', **creds)
 
     q = sqs.create_queue(
@@ -25,6 +25,9 @@ def poll_queue(queue_name, creds):
     )
 
     print("Receive from", q['QueueUrl'], file=sys.stderr)
+    if debug:
+        print("Received %s" % m)
+
     if 'Messages' not in m:
         print("No Messages found", file=sys.stderr)
         return

@@ -42,7 +42,7 @@ def check(instream):
         'aws_secret_access_key': source['aws_secret_access_key'],
         'region_name': source['aws_region'],
     }
-    versions = sqs.poll_queue(source['queue'], creds)
+    versions = sqs.poll_queue(source['queue'], creds, debug=True)
     if not versions:
         current_version = data.get('version')
         if current_version:
