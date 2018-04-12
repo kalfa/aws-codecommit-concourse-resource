@@ -6,6 +6,10 @@ import json
 
 
 def poll_queue(queue_name, creds, debug=False):
+    """Return a version for each refs in the tree
+
+    The return object is [{'ref': '<commitid>'}]
+    """
     sqs = boto3.client('sqs', **creds)
 
     q = sqs.create_queue(
@@ -26,7 +30,7 @@ def poll_queue(queue_name, creds, debug=False):
 
     print("Receive from", q['QueueUrl'], file=sys.stderr)
     if debug:
-        print("Received %s" % m)
+        print("Received %s" % m, file=sys.stderr)
 
     if 'Messages' not in m:
         print("No Messages found", file=sys.stderr)
@@ -35,7 +39,16 @@ def poll_queue(queue_name, creds, debug=False):
     commitids = []
     for msg in m['Messages']:
         body = json.loads(msg['Body'])
-        message = json.loads(body['Message'])
+
+        # The message can be passed as json code in a Message key or directly
+        # within body
+        # A normal CodeCommit trigger will not use Message, but a manually
+        # generated message might.
+        try:
+            message = json.loads(body['Message'])
+        except KeyError:
+            message = body
+
         if 'Records' not in message:
             print("Records not in message, not AWS", file=sys.stderr)
             print(m, file=sys.stderr)
