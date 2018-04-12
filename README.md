@@ -16,15 +16,15 @@ resources:
 - name: my-codecommit-repo
   type: aws-codecommit
   source:
-    aws\_access\_key\_id: {{AWS\_ACCESS\_KEY\_ID}}
-    aws\_secret\_access\_key: {{AWS\_SECRET\_KEY}}
-    aws\_region: {{AWS\_REGION}}
+    aws_access_key_id: {{AWS_ACCESS_KEY_ID}}
+    aws_secret_access_key: {{AWS_SECRET_KEY}}
+    aws_region: {{AWS_REGION}}
 
-    queue: {{AWS\_QUEUE\_NAME}}
-    uri: {{AWS\_CODECOMMIT\_REPO\_URL}}
+    queue: {{AWS_QUEUE_NAME}}
+    uri: {{AWS_CODECOMMIT_REPO_URL}}
     branch: master
-    username: {{AWS\_HTTP\_TOKEN}}
-    password: {{AWS\_HTTP\_TOKEN\_SECRET}}
+    username: {{AWS_HTTP_TOKEN}}
+    password: {{AWS_HTTP_TOKEN_SECRET}}
 ```
 
 Where:
