@@ -5,7 +5,7 @@ import boto3
 import json
 
 
-def poll_queue(queue_name, creds, debug=False):
+def poll_queue(queue_name, creds, conf, debug=False):
     """Return a version for each refs in the tree
 
     The return object is [{'ref': '<commitid>'}]
@@ -30,10 +30,9 @@ def poll_queue(queue_name, creds, debug=False):
 
     print("Receive from", q['QueueUrl'], file=sys.stderr)
     if debug:
-        print("Received %s" % m, file=sys.stderr)
+        print("Payload: %s" % m, file=sys.stderr)
 
     if 'Messages' not in m:
-        print("No Messages found", file=sys.stderr)
         return
 
     commitids = []
@@ -44,6 +43,9 @@ def poll_queue(queue_name, creds, debug=False):
         # within body
         # A normal CodeCommit trigger will not use Message, but a manually
         # generated message might.
+        # <https://docs.aws.amazon.com/codecommit/latest/userguide/how-to-notify-sns.html>
+        # point 5 for an example of a CC trigger payload by SNS (then pass
+        # passed to SQS)
         try:
             message = json.loads(body['Message'])
         except KeyError:
@@ -58,9 +60,22 @@ def poll_queue(queue_name, creds, debug=False):
             if 'codecommit' not in record:
                 print("Not a CodeCommit message", file=sys.stderr)
                 continue
-            else:
-                references = record['codecommit']['references']
-                for reference in references:
+
+            # [{'commit': '<id>', 'ref': "<ref>"},...]
+            # where <ref> can be e.g. 'refs/heads/<branchName>',
+            # 'refs/tags/<tagName'
+            references = record['codecommit']['references']
+            for reference in references:
+                if 'branch' in conf:
+                    branch_ref = 'refs/heads/{branch}'.format(
+                        branch=conf['branch'])
+                    tag_ref = 'refs/tags/{branch}'.format(
+                        branch=conf['branch'])
+                    if references['ref'].startswith((branch_ref, tag_ref)):
+                        commitid = reference['commit']
+                        commitids.append(commitid)
+                else:
+                    # if not branch has been specified, then all branches!
                     commitid = reference['commit']
                     commitids.append(commitid)
 
