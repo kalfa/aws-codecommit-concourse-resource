@@ -50,3 +50,4 @@ Where:
 - *queue*, *aws\_access\_key\_id*, *aws\_secret\_access\_key* and *aws\_region* are specific for this resource
 - *queue* containes the AWS SQS queue name (not the URL or the ARN!), e.g., "concourse"
 - any other key are the same used by the "in" or "out" script of git-resource
+
