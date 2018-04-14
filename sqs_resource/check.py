@@ -18,6 +18,7 @@ import git
 import os
 import sys
 import json
+from pprint import pprint
 
 from typing import List  # noqa, just for typing
 
@@ -25,6 +26,11 @@ from . import sqs
 
 
 def git_check(data: dict, references: List[str] = None, repo_dir: str = None):
+    version = data['source'].get('version')
+    if not version:
+        # version is passed as None if there are no previous version, but an
+        # empty dictionary playes better with how the symbol is used later
+        version = {}
     repo_uri = data['source']['uri']
     if repo_dir is None:
         tmpdir = os.environ.get('TMPDIR', '/tmp')
@@ -59,7 +65,7 @@ def git_check(data: dict, references: List[str] = None, repo_dir: str = None):
     last_version = head  # type: git.Commit
 
     # ref can be either the commit-id string or None
-    ref = data.get('version', {}).get('ref', None)
+    ref = version.get('ref', None)
     try:
         last_version = repo.commit(ref)
     except git.BadName:
@@ -113,7 +119,10 @@ def setup_credentials(data):
 def check(instream):
     data = json.load(instream)
     source = data['source']
-    print('check: requested data:', data, file=sys.stderr)
+    debug = source.get('debug', False)
+
+    if debug:
+        pprint(data, stream=sys.stderr)
     creds = {
         'aws_access_key_id': source['aws_access_key_id'],
         'aws_secret_access_key': source['aws_secret_access_key'],
@@ -126,7 +135,7 @@ def check(instream):
     if 'branch' in source:
         conf['branch'] = source['branch']
 
-    references = sqs.poll_queue(source['queue'], creds, conf, debug=True)
+    references = sqs.poll_queue(source['queue'], creds, conf, debug=debug)
     if references:
         references = git_check(data, references=references)
     else:
