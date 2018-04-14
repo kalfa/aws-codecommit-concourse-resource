@@ -87,8 +87,11 @@ def poll_queue(queue_name, creds, conf, debug=False, delete_message=True):
 
     pprint(commitids, stream=sys.stderr)
     if delete_message:
+        print("Deleting SQS message", file=sys.stderr)
         sqs.delete_message(
             QueueUrl=q['QueueUrl'],
             ReceiptHandle=msg['ReceiptHandle'])
+    else:
+        print("Not deleting SQS message", file=sys.stderr)
 
     return commitids

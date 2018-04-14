@@ -21,11 +21,20 @@ import json
 from pprint import pprint
 
 from typing import List  # noqa, just for typing
+from typing import Dict # noqa, just for typing
 
 from . import sqs
 
 
-def git_check(data: dict, references: List[str] = None, repo_dir: str = None):
+class MyProgressPrinter(git.RemoteProgress):
+    def update(self, op_code, cur_count, max_count=None, message=''):
+        print(op_code, cur_count, max_count, cur_count / (max_count or 100.0),
+              message, file=sys.stderr)
+
+
+def git_check(data: dict, references: List[Dict[str, str]] = None,
+              repo_dir: str = None):
+    debug = data['source'].get('debug', False)
     version = data['source'].get('version')
     if not version:
         # version is passed as None if there are no previous version, but an
@@ -36,6 +45,17 @@ def git_check(data: dict, references: List[str] = None, repo_dir: str = None):
         tmpdir = os.environ.get('TMPDIR', '/tmp')
         repo_dir = '{tmpdir}/codecommit-resource-repo-cache'.format(
             tmpdir=tmpdir)
+    # TODO: resolve refs/remotes/origin/HEAD instead of hardcoding master
+    branch = data['source'].get('branch', 'master')
+    if debug:
+        print("Branch is", branch, file=sys.stderr)
+
+    if references is None:
+        # use the head head of the branch as commit for it,
+        # so repo.commit() can resolve it
+        references = [{'ref': 'refs/heads/{branch}'.format(branch=branch),
+                      'commit': 'refs/remotes/origin/{branch}'.format(
+                          branch=branch)}]
 
     # full paths for included and ignored repository locations.
     # it doesn't matter if they don't exist: the comparison will harmlessly
@@ -57,21 +77,39 @@ def git_check(data: dict, references: List[str] = None, repo_dir: str = None):
         repo = git.Repo.init(repo_dir)
         repo.create_remote('origin', repo_uri)
 
-    repo.remotes.origin.fetch()
-    repo.head.reset('FETCH_HEAD')
+    repo.remotes.origin.fetch(progress=MyProgressPrinter())
 
-    head = repo.commit('HEAD')  # type: git.Commit
-    # initialised to HEAD, and updated by a valid 'ref' later
+    head = None
+    for reference in references:
+        ref = reference['ref']
+        if ref == "refs/heads/{branch}".format(branch=branch) or \
+                ref == "refs/tags/{branch}".format(branch=branch):
+            head = repo.commit(reference['commit'])
+            break
+    if head is None:
+        print("SQS passed a commit id which seems to not be valid anymore. "
+              "Unless a rebase/forced push/repo manipulation happened, this "
+              "seems a bug of the resource and should be investigated.",
+              file=sys.stderr)
+        raise RuntimeError("couldn't find commit %s" % reference['commit'])
+
+    if debug:
+        print("Checked out commit for branch is %s", head.hexsha,
+              file=sys.stderr)
+
+    repo.head.reset(head)
+    # initialised to branch's HEAD, and updated by a valid 'ref' later
     last_version = head  # type: git.Commit
 
     # ref can be either the commit-id string or None
-    ref = version.get('ref', None)
+    ref = head
     try:
         last_version = repo.commit(ref)
     except git.BadName:
         # ref version is not/anymore a valid commit-id, this means
         # last_version is HEAD, as the resource specs say
-        pass
+        print("version.ref %s is not valid anymore, using branch HEAD instead "
+              "(%s)" % last_version.hexsha, file=sys.stderr)
 
     # Obtain the commit ids between the current head and the last known version
     # (commit)
