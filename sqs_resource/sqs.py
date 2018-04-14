@@ -71,7 +71,7 @@ def poll_queue(queue_name, creds, conf, debug=False):
                         branch=conf['branch'])
                     tag_ref = 'refs/tags/{branch}'.format(
                         branch=conf['branch'])
-                    if references['ref'].startswith((branch_ref, tag_ref)):
+                    if reference['ref'].startswith((branch_ref, tag_ref)):
                         commitid = reference['commit']
                         commitids.append(commitid)
                 else:
