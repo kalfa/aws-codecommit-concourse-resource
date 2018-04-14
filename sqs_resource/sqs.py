@@ -3,6 +3,7 @@
 import sys
 import boto3
 import json
+from pprint import pprint
 
 
 def poll_queue(queue_name, creds, conf, debug=False):
@@ -30,7 +31,8 @@ def poll_queue(queue_name, creds, conf, debug=False):
 
     print("Receive from", q['QueueUrl'], file=sys.stderr)
     if debug:
-        print("Payload: %s" % m, file=sys.stderr)
+        print("DEBUG: Payload:")
+        pprint(m,)
 
     if 'Messages' not in m:
         return
