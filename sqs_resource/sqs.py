@@ -54,13 +54,17 @@ def poll_queue(queue_name, creds, conf, debug=False):
             message = body
 
         if 'Records' not in message:
-            print("Records not in message, not AWS", file=sys.stderr)
-            print(m, file=sys.stderr)
+            print("Records key not in message, "
+                  "it's not probably a SQS message", file=sys.stderr)
+            if debug:
+                pprint(msg, stream=sys.stderr)
             continue
 
         for record in message['Records']:
             if 'codecommit' not in record:
                 print("Not a CodeCommit message", file=sys.stderr)
+                if debug:
+                    pprint(msg, stream=sys.stderr)
                 continue
 
             # [{'commit': '<id>', 'ref': "<ref>"},...]
