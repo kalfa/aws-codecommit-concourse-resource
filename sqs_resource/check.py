@@ -42,10 +42,12 @@ def git_check(data: dict, references: List[str] = None, repo_dir: str = None):
 
     repo = None  # type: git.Repo
     if os.path.exists(repo_dir) and os.path.isdir(repo_dir):
-        print("Repository %s already exists in %s" % (repo_uri, repo_dir))
+        print("Repository %s already exists in %s" % (repo_uri, repo_dir),
+              file=sys.stderr)
         repo = git.Repo(repo_dir)
     else:
-        print("Cloning repository %s in %s" % (repo_uri, repo_dir))
+        print("Cloning repository %s in %s" % (repo_uri, repo_dir),
+              file=sys.stderr)
         repo = git.Repo.init(repo_dir)
         repo.create_remote('origin', repo_uri)
 

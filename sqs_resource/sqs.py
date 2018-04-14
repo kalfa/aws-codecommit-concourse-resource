@@ -31,8 +31,8 @@ def poll_queue(queue_name, creds, conf, debug=False):
 
     print("Receive from", q['QueueUrl'], file=sys.stderr)
     if debug:
-        print("DEBUG: Payload:")
-        pprint(m,)
+        print("DEBUG: Payload:", file=sys.stderr)
+        pprint(m, stream=sys.stderr)
 
     if 'Messages' not in m:
         return
