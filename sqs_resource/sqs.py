@@ -78,15 +78,13 @@ def poll_queue(queue_name, creds, conf, debug=False):
                     tag_ref = 'refs/tags/{branch}'.format(
                         branch=conf['branch'])
                     if reference['ref'].startswith((branch_ref, tag_ref)):
-                        commitid = reference['commit']
-                        commitids.append(commitid)
+                        commitids.append(reference)
                 else:
                     # if not branch has been specified, then all branches!
-                    commitid = reference['commit']
-                    commitids.append(commitid)
+                    commitids.append(reference)
 
-        sqs.delete_message(
-            QueueUrl=q['QueueUrl'],
-            ReceiptHandle=msg['ReceiptHandle'])
+    sqs.delete_message(
+        QueueUrl=q['QueueUrl'],
+        ReceiptHandle=msg['ReceiptHandle'])
 
-        return [{'ref': ref} for ref in commitids]
+    return commitids
