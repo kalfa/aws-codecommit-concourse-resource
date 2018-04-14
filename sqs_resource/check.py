@@ -120,6 +120,7 @@ def check(instream):
     data = json.load(instream)
     source = data['source']
     debug = source.get('debug', False)
+    delete_message = source.get('delete_message', True)
 
     if debug:
         pprint(data, stream=sys.stderr)
@@ -135,7 +136,8 @@ def check(instream):
     if 'branch' in source:
         conf['branch'] = source['branch']
 
-    references = sqs.poll_queue(source['queue'], creds, conf, debug=debug)
+    references = sqs.poll_queue(source['queue'], creds, conf,
+                                debug=debug, delete_message=delete_message)
     if references:
         references = git_check(data, references=references)
     else:

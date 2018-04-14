@@ -6,7 +6,7 @@ import json
 from pprint import pprint
 
 
-def poll_queue(queue_name, creds, conf, debug=False):
+def poll_queue(queue_name, creds, conf, debug=False, delete_message=True):
     """Return a version for each refs in the tree
 
     The return object is [{'ref': '<commitid>'}]
@@ -73,18 +73,22 @@ def poll_queue(queue_name, creds, conf, debug=False):
             references = record['codecommit']['references']
             for reference in references:
                 if 'branch' in conf:
-                    branch_ref = 'refs/heads/{branch}'.format(
-                        branch=conf['branch'])
-                    tag_ref = 'refs/tags/{branch}'.format(
-                        branch=conf['branch'])
+                    print("Considering only refs for "
+                          "{branch}".format(**conf),
+                          file=sys.stderr)
+                    branch_ref = 'refs/heads/{branch}'.format(**conf)
+                    tag_ref = 'refs/tags/{branch}'.format(**conf)
                     if reference['ref'].startswith((branch_ref, tag_ref)):
                         commitids.append(reference)
                 else:
+                    print("Considering all branches", file=sys.stderr)
                     # if not branch has been specified, then all branches!
                     commitids.append(reference)
 
-    sqs.delete_message(
-        QueueUrl=q['QueueUrl'],
-        ReceiptHandle=msg['ReceiptHandle'])
+    pprint(commitids, stream=sys.stderr)
+    if delete_message:
+        sqs.delete_message(
+            QueueUrl=q['QueueUrl'],
+            ReceiptHandle=msg['ReceiptHandle'])
 
     return commitids
