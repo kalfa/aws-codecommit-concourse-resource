@@ -14,19 +14,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import subprocess
-import json
-import tempfile
-import sys
 import git
 import os
+import sys
+import json
 
 from typing import List  # noqa, just for typing
 
 from . import sqs
 
 
-def git_check(data: dict, references: list, repo_dir: str = None):
+def git_check(data: dict, references: List[str] = None, repo_dir: str = None):
     repo_uri = data['source']['uri']
     if repo_dir is None:
         tmpdir = os.environ.get('TMPDIR', '/tmp')
@@ -100,15 +98,12 @@ def git_check(data: dict, references: list, repo_dir: str = None):
     return [commit.hexsha for commit in parents]
 
 
-def original_git_check(data):
-    filename = tempfile.mktemp()
+def setup_credentials(data):
+    credential_file = "~/.netrc"
+    credential_content = "default login {username} password {password}"
 
-    with open(filename, 'w') as f:
-        f.write(json.dumps(data))
-    with open(filename, 'r') as f:
-        return subprocess.check_call(['/opt/original_git/check'],
-                                     stdin=f,
-                                     shell=True)
+    with open(os.path.expanduser(credential_file), 'w') as f:
+        f.write(credential_content.format(**data['source']))
 
 
 def check(instream):
@@ -121,31 +116,27 @@ def check(instream):
         'region_name': source['aws_region'],
     }
 
+    setup_credentials(data)
+
     conf = {}
     if 'branch' in source:
         conf['branch'] = source['branch']
 
     references = sqs.poll_queue(source['queue'], creds, conf, debug=True)
     if references:
-        git_check(data)
+        references = git_check(data, references=references)
     else:
         print("No messages found in SQS", file=sys.stderr)
-        current_version = data.get('version')
-        if current_version:
-            return [current_version]
-        else:
-            print("... and no previous version found: "
-                  "runing original git/check",
-                  file=sys.stderr)
-            return original_git_check(data)
+        references = git_check(data)
 
-    return references
+    return [{'ref': ver} for ver in references]
 
 
 def main():
     response = check(sys.stdin)
-    if response:
-        print(json.dumps(response))
+    if not response:
+        response = []
+    print(json.dumps(response))
 
 
 if __name__ == '__main__':
