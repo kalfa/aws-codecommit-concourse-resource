@@ -170,16 +170,18 @@ def check(instream):
 
     setup_credentials(data)
 
-    conf = {}
-    if 'branch' in source:
-        conf['branch'] = source['branch']
-
+    conf = {
+        'events': ('push',),
+        'customData': source.get('customData'),
+        'branch': source.get('branch'),
+        'repository_arn': source.get('repository_arn')
+    }
     references = sqs.poll_queue(source['queue'], creds, conf,
                                 debug=debug, delete_message=delete_message)
     if references:
         references = git_check(data, references=references)
     else:
-        print("No messages found in SQS", file=sys.stderr)
+        print("No matching messages found in SQS", file=sys.stderr)
         references = git_check(data)
 
     return [{'ref': ver} for ver in references]

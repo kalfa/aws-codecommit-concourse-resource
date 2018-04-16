@@ -61,18 +61,37 @@ def poll_queue(queue_name, creds, conf, debug=False, delete_message=True):
             continue
 
         for record in message['Records']:
+            # [{'commit': '<id>', 'ref': "<ref>"},...]
+            # where <ref> can be e.g. 'refs/heads/<branchName>',
+            # 'refs/tags/<tagName'
+            customData = record.get('customData')
+            wanted_customData = conf.get('customData')
+            if wanted_customData and customData != wanted_customData:
+                print("received customData='%s' not matching with "
+                      "configured '%s': message not considered." % (
+                          customData, wanted_customData),
+                      file=sys.stderr)
+                continue
+
+            if record.get('eventSource') == "aws:codecommit":
+                repository_arn = record.get('eventSourceARN')
+                wanted_repository_arn = conf.get('repository_arn', None)
+                if wanted_repository_arn and \
+                        repository_arn != wanted_repository_arn:
+                    print("received repository_arn='%s' not matching with "
+                          "configured '%s': message not considered." % (
+                              repository_arn, wanted_repository_arn),
+                          file=sys.stderr)
+                    continue
+
             if 'codecommit' not in record:
                 print("Not a CodeCommit message", file=sys.stderr)
                 if debug:
                     pprint(msg, stream=sys.stderr)
                 continue
-
-            # [{'commit': '<id>', 'ref': "<ref>"},...]
-            # where <ref> can be e.g. 'refs/heads/<branchName>',
-            # 'refs/tags/<tagName'
             references = record['codecommit']['references']
             for reference in references:
-                if 'branch' in conf:
+                if conf.get('branch'):
                     print("Considering only refs for "
                           "{branch}".format(**conf),
                           file=sys.stderr)
