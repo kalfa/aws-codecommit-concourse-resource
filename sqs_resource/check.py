@@ -18,9 +18,11 @@ import git
 import os
 import sys
 import json
+import fnmatch
 from pprint import pprint
 
 from typing import List  # noqa, just for typing
+from typing import Iterable # noqa, just for typing
 from typing import Dict # noqa, just for typing
 
 from . import sqs
@@ -117,29 +119,28 @@ def git_check(data: dict, references: List[Dict[str, str]] = None,
     parents = []  # type: List[git.Commit]
 
     while c.parents:
-        def absolute(p):
-            """Just a shortcut"""
-            return os.path.abspath('%s/%s' % (repo_dir, p))
+        def multiglob(filename: str, patterns: Iterable[str]) -> bool:
+            return any([fnmatch.fnmatch(filename, pattern)
+                        for pattern in patterns])
 
         is_included = True
         is_ignored = False
         if paths:
-            is_included = any([absolute(path).startswith(tuple(paths))
+            is_included = any([multiglob(path.b_path, paths)
                                for path in c.diff()])
         if ignored_paths:
-            is_ignored = any([absolute(path).startswith(tuple(ignored_paths))
+            is_ignored = any([multiglob(path.b_path, paths)
                               for path in c.diff()])
 
-        if is_ignored or not is_included:
-            # in a multi-parent commit, the first one is always the 'current
-            # branch' one, and the others are the merged branches'
-            c = c.parents[0]
-        else:
+        if is_included and not is_ignored:
             parents.append(c)
-            c = c.parents[0]
 
-        if parents[-1] == last_version:
+        if c == last_version:
             break
+
+        # in a multi-parent commit, the first one is always the 'current
+        # branch' one, and the others are the merged branches'
+        c = c.parents[0]
 
     parents.reverse()
 
