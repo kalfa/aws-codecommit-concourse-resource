@@ -79,7 +79,7 @@ def git_check(data: dict, references: List[Dict[str, str]] = None,
         repo = git.Repo.init(repo_dir)
         repo.create_remote('origin', repo_uri)
 
-    repo.remotes.origin.fetch(progress=MyProgressPrinter())
+    repo.remotes.origin.fetch(branch, progress=MyProgressPrinter(), tags=True)
 
     head = None
     for reference in references:
